@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const layoutsRepo = require('./layouts.repository');
-const widgetsService = require('../widgets/widgets.service'); // ✅ เรียก Service แทน Repo
+const widgetsService = require('../widgets/widgets.service');
 const widgetsRepo = require('../widgets/widgets.repository');
 
 const getAllLayouts = async () => {
@@ -11,43 +11,43 @@ const getLayoutById = async (id) => {
   const layout = await layoutsRepo.findById(id);
   if (!layout) return null;
 
-  // ✅ ให้ Widget Service จัดการเรื่องดึงและแปลงข้อมูล
+  // ดึง Widgets ที่เกี่ยวข้องมาด้วย
   const widgets = await widgetsService.getWidgetsByLayoutId(id);
-
   return { ...layout, widgets };
 };
 
 const createLayout = async (data) => {
-  const { name, width, height, widgets } = data;
+  const { name, width, height, background_color, widgets } = data;
   const layoutId = uuidv4();
 
-  // 1. สร้าง Layout
+  // 1. บันทึก Layout ลงฐานข้อมูล
   await layoutsRepo.create({
     id: layoutId,
     name,
     width: width || 1920,
     height: height || 1080,
-    // background_color: background_color || '#ffffff', // [เพิ่มบรรทัดนี้]
+    background_color: background_color || '#ffffff',
     created_at: new Date(),
     updated_at: new Date()
   });
 
-  // 2. สร้าง Widgets ผ่าน Service
+  // 2. บันทึก Widgets (ถ้ามี)
   if (widgets && widgets.length > 0) {
     for (const w of widgets) {
       await widgetsService.createWidget({
         ...w,
-        layout_id: layoutId // ส่ง layout_id เข้าไปแปะ
+        layout_id: layoutId // ผูก ID ของ layout ที่เพิ่งสร้าง
       });
     }
   }
 
   return { id: layoutId, message: "Layout created successfully" };
 };
+
 const updateLayout = async (id, data) => {
   const { name, width, height, background_color, widgets } = data;
 
-  // 1. อัปเดตข้อมูล Layout หลัก
+  // 1. อัปเดตข้อมูล Layout
   await layoutsRepo.update(id, {
     name,
     width,
@@ -56,18 +56,15 @@ const updateLayout = async (id, data) => {
     updated_at: new Date()
   });
 
-  // 2. จัดการ Widgets (ลบของเก่าแล้วลงใหม่ ง่ายสุดสำหรับเคสนี้)
-  // หรือถ้าจะทำให้ดีกว่านี้คือเช็คว่าอันไหนมีอยู่แล้วให้อัปเดต อันไหนไม่มีให้เพิ่ม
-  
-  // ลบ widgets เก่าทั้งหมดของ layout นี้ทิ้งก่อน
-  await widgetsRepo.deleteByLayoutId(id); 
+  // 2. ลบ Widgets เก่าทิ้งทั้งหมด (Reset)
+  await widgetsRepo.deleteByLayoutId(id);
 
-  // ลง widgets ใหม่
+  // 3. ลง Widgets ชุดใหม่ที่ส่งมาจากหน้าบ้าน
   if (widgets && widgets.length > 0) {
     for (const w of widgets) {
       await widgetsService.createWidget({
         ...w,
-        layout_id: id // อย่าลืมใส่ layout_id
+        layout_id: id
       });
     }
   }
@@ -75,10 +72,7 @@ const updateLayout = async (id, data) => {
   return { id, message: "Layout updated successfully" };
 };
 
-// [เพิ่ม] Delete Layout Logic
 const deleteLayout = async (id) => {
-  // ลบ Layout (Cascade delete ใน DB จะลบ widgets ให้เองถ้าตั้งไว้ แต่ถ้าไม่ได้ตั้งก็ควรลบ widgets ก่อน)
-  // สมมติว่า DB ตั้ง Cascade ไว้ หรือไม่ก็สั่งลบ widgets ก่อนเพื่อความชัวร์
   await widgetsRepo.deleteByLayoutId(id);
   await layoutsRepo.deleteById(id);
 };
@@ -87,6 +81,6 @@ module.exports = {
   getAllLayouts,
   getLayoutById,
   createLayout,
-  updateLayout, // export เพิ่ม
-  deleteLayout  // export เพิ่ม
+  updateLayout,
+  deleteLayout
 };

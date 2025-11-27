@@ -78,7 +78,6 @@
 const { Pool } = require("pg");
 const config = require("./index");
 
-// สร้าง Connection Pool ของ PostgreSQL
 const pool = new Pool({
   connectionString: config.database.url,
   ssl: config.database.url.includes("localhost") 
@@ -88,31 +87,34 @@ const pool = new Pool({
 
 const db = {};
 
-// ฟังก์ชัน Query ทั่วไป
-db.query = async (text, params) => {
-  try {
-    const res = await pool.query(text, params);
-    return res.rows;
-  } catch (e) {
-    console.error("❌ Database Query Error:", e.message);
-    console.error("   SQL:", text);
-    console.error("   Params:", params);
-    throw e; // ส่ง Error ต่อไปเพื่อให้ Controller รู้ว่าพัง
-  }
+// Helper Log
+const logError = (msg, error, sql, params) => {
+  console.error(`❌ ${msg}:`, error.message);
+  if (sql) console.error("   SQL:", sql);
+  if (params) console.error("   Params:", JSON.stringify(params));
 };
 
-// ฟังก์ชันดึงข้อมูลแถวเดียว
-db.queryOne = async (text, params) => {
+db.query = async (text, params) => {
   try {
-    const res = await pool.query(text, params);
-    return res.rows[0];
+    // ป้องกันส่ง undefined เข้าไปใน params (เปลี่ยนเป็น null แทน)
+    const safeParams = params ? params.map(p => p === undefined ? null : p) : [];
+    const res = await pool.query(text, safeParams);
+    return res.rows;
   } catch (e) {
-    console.error("❌ Database QueryOne Error:", e.message);
+    logError("Database Query Error", e, text, params);
     throw e;
   }
 };
 
-// [สำคัญ] Helper สร้างตัวแปร $1, $2, $3 ... สำหรับ Postgres
+db.queryOne = async (text, params) => {
+  try {
+    const rows = await db.query(text, params);
+    return rows[0];
+  } catch (e) {
+    throw e; // db.query log ให้แล้ว
+  }
+};
+
 const getPlaceholders = (length, startIndex = 1) => {
   return Array.from({ length }, (_, i) => `$${i + startIndex}`).join(', ');
 };
@@ -120,20 +122,22 @@ const getPlaceholders = (length, startIndex = 1) => {
 db.insert = async (table, data) => {
   try {
     const keys = Object.keys(data);
-    const values = Object.values(data).map(val => (val === undefined ? null : val));
+    const values = Object.values(data).map(val => {
+      // แปลง Object เป็น JSON String อัตโนมัติ
+      if (val !== null && typeof val === 'object') return JSON.stringify(val);
+      if (val === undefined) return null;
+      return val;
+    });
     
-    // ใช้ Double Quotes "" สำหรับชื่อ Column ใน Postgres
     const columns = keys.map(k => `"${k}"`).join(', ');
-    // สร้าง Placeholder $1, $2, $3 ...
     const placeholders = getPlaceholders(values.length);
 
-    // RETURNING * เพื่อให้ได้ข้อมูลที่เพิ่ง Insert กลับมาทันที
     const query = `INSERT INTO "${table}" (${columns}) VALUES (${placeholders}) RETURNING *`;
     
     const result = await db.query(query, values);
     return result ? result[0] : null;
   } catch (e) {
-    console.error(`❌ Database Insert Error [${table}]:`, e.message);
+    console.error(`❌ Insert Error [${table}]:`, e.message);
     throw e;
   }
 };
@@ -141,17 +145,17 @@ db.insert = async (table, data) => {
 db.update = async (table, data, condition) => {
   try {
     const keys = Object.keys(data);
-    const values = Object.values(data);
+    const values = Object.values(data).map(val => {
+      if (val !== null && typeof val === 'object') return JSON.stringify(val);
+      if (val === undefined) return null;
+      return val;
+    });
     
     const conditionKeys = Object.keys(condition);
     const conditionValues = Object.values(condition);
     
     let paramIndex = 1;
-    
-    // สร้าง Set Clause: "col1" = $1, "col2" = $2
     const setClause = keys.map(k => `"${k}" = $${paramIndex++}`).join(', ');
-    
-    // สร้าง Where Clause: "id" = $3
     const whereClause = conditionKeys.map(k => `"${k}" = $${paramIndex++}`).join(' AND ');
 
     const query = `UPDATE "${table}" SET ${setClause} WHERE ${whereClause} RETURNING *`;
@@ -159,7 +163,7 @@ db.update = async (table, data, condition) => {
     const result = await db.query(query, [...values, ...conditionValues]);
     return result;
   } catch (e) {
-    console.error(`❌ Database Update Error [${table}]:`, e.message);
+    console.error(`❌ Update Error [${table}]:`, e.message);
     throw e;
   }
 };

@@ -1,12 +1,12 @@
 const db = require("../../config/database");
 
 const findAll = async () => {
-  const sql = "SELECT * FROM layouts ORDER BY created_at DESC";
-  return await db.query(sql);
+  return await db.query("SELECT * FROM layouts ORDER BY created_at DESC");
 };
 
 const findById = async (id) => {
-  return await db.queryOne("SELECT * FROM layouts WHERE id = ?", [id]);
+  // [Postgres] ใช้ $1
+  return await db.queryOne("SELECT * FROM layouts WHERE id = $1", [id]);
 };
 
 const create = async (layoutData) => {
@@ -14,16 +14,13 @@ const create = async (layoutData) => {
 };
 
 const update = async (id, data) => {
-  // ใช้ db.update ที่เราเตรียมไว้ใน config/database.js
   return await db.update("layouts", data, { id });
 };
 
 const deleteById = async (id) => {
-  // PostgreSQL ใช้ $1
-  const sql = 'DELETE FROM "layouts" WHERE id = $1'; 
-  return await db.query(sql, [id]);
+  // [Postgres] ใช้ $1
+  return await db.query('DELETE FROM "layouts" WHERE id = $1', [id]);
 };
-
 
 module.exports = {
   findAll,
