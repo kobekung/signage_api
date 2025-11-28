@@ -3,8 +3,8 @@ const layoutsRepo = require('./layouts.repository');
 const widgetsService = require('../widgets/widgets.service');
 const widgetsRepo = require('../widgets/widgets.repository');
 
-const getAllLayouts = async () => {
-  return await layoutsRepo.findAll();
+const getAllLayouts = async (companyId) => {
+  return await layoutsRepo.findAll(companyId);
 };
 
 const getLayoutById = async (id) => {
@@ -19,6 +19,7 @@ const createLayout = async (data) => {
   
   // [FIX] ไม่ต้อง gen ID เองแล้ว
   const newLayout = await layoutsRepo.create({
+    company_id: company_id,
     name,
     width: width || 1920,
     height: height || 1080,

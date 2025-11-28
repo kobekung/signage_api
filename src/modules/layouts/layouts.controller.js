@@ -2,7 +2,9 @@ const layoutService = require('./layouts.service');
 
 const getLayouts = async (req, res) => {
   try {
-    const layouts = await layoutService.getAllLayouts();
+    // รับ company_id จาก Query หรือ Header
+    const companyId = req.query.company_id || req.headers['x-company-id'];
+    const layouts = await layoutService.getAllLayouts(companyId);
     res.json(layouts);
   } catch (error) {
     res.status(500).json({ error: error.message });

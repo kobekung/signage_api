@@ -1,7 +1,10 @@
 const db = require("../../config/database");
 
-const findAll = async () => {
-  return await db.query("SELECT * FROM layouts ORDER BY created_at DESC");
+const findAll = async (companyId) => {
+  if (companyId) {
+    return await db.query('SELECT * FROM layouts WHERE company_id = ? ORDER BY created_at DESC', [companyId]);
+  }
+  return await db.query('SELECT * FROM layouts ORDER BY created_at DESC');
 };
 
 const findById = async (id) => {
