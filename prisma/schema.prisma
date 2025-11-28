@@ -1,34 +1,44 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model layouts {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String    @db.VarChar(255)
-  description      String?
-  width            Int       @default(1920)
-  height           Int       @default(1080)
-  background_color String?   @default("#ffffff") @db.VarChar(7)
-  is_template      Boolean?  @default(false)
-  created_at       DateTime? @default(now()) @db.Timestamp(6)
-  updated_at       DateTime? @default(now()) @db.Timestamp(6)
-  widgets          widgets[]
+  // [FIX] เปลี่ยนเป็น Int และ autoincrement()
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(255)
+  description     String?   @db.Text
+  width           Int       @default(1920)
+  height          Int       @default(1080)
+  background_color String   @default("#ffffff") @db.VarChar(7)
+  is_template     Boolean   @default(false)
+  thumbnail_url   String?   @db.VarChar(255)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now()) @updatedAt
+  
+  widgets         widgets[]
 }
 
 model widgets {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  layout_id  String?  @db.Uuid
-  type       String   @db.VarChar(50)
-  x          Int      @default(0)
-  y          Int      @default(0)
-  width      Int      @default(100)
-  height     Int      @default(100)
-  z_index    Int      @default(1)
-  properties Json     @default("{}")
-  layouts    layouts? @relation(fields: [layout_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  // [FIX] เปลี่ยนเป็น Int และ autoincrement()
+  id          Int      @id @default(autoincrement())
+  
+  // [FIX] FK ก็ต้องเปลี่ยนเป็น Int ด้วย
+  layout_id   Int      
+  
+  type        String   @db.VarChar(50)
+  x           Int      @default(0)
+  y           Int      @default(0)
+  width       Int      @default(100)
+  height      Int      @default(100)
+  z_index     Int      @default(1)
+  properties  Json     
+  
+  layout      layouts  @relation(fields: [layout_id], references: [id], onDelete: Cascade)
 }

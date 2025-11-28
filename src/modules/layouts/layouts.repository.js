@@ -5,8 +5,8 @@ const findAll = async () => {
 };
 
 const findById = async (id) => {
-  // [Postgres] ใช้ $1
-  return await db.queryOne("SELECT * FROM layouts WHERE id = $1", [id]);
+  // [MySQL] ใช้ ? แทน $1
+  return await db.queryOne("SELECT * FROM layouts WHERE id = ?", [id]);
 };
 
 const create = async (layoutData) => {
@@ -18,8 +18,8 @@ const update = async (id, data) => {
 };
 
 const deleteById = async (id) => {
-  // [Postgres] ใช้ $1
-  return await db.query('DELETE FROM "layouts" WHERE id = $1', [id]);
+  // [MySQL] ใช้ ? แทน $1 และ `layouts`
+  return await db.query("DELETE FROM layouts WHERE id = ?", [id]);
 };
 
 module.exports = {
