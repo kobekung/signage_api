@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+// ลบ const { v4: uuidv4 } = require('uuid'); ออก
 const layoutsRepo = require('./layouts.repository');
 const widgetsService = require('../widgets/widgets.service');
 const widgetsRepo = require('../widgets/widgets.repository');
@@ -10,19 +10,15 @@ const getAllLayouts = async () => {
 const getLayoutById = async (id) => {
   const layout = await layoutsRepo.findById(id);
   if (!layout) return null;
-
-  // ดึง Widgets ที่เกี่ยวข้องมาด้วย
   const widgets = await widgetsService.getWidgetsByLayoutId(id);
   return { ...layout, widgets };
 };
 
 const createLayout = async (data) => {
   const { name, width, height, background_color, widgets } = data;
-  const layoutId = uuidv4();
-
-  // 1. บันทึก Layout ลงฐานข้อมูล
-  await layoutsRepo.create({
-    id: layoutId,
+  
+  // [FIX] ไม่ต้อง gen ID เองแล้ว
+  const newLayout = await layoutsRepo.create({
     name,
     width: width || 1920,
     height: height || 1080,
@@ -31,12 +27,13 @@ const createLayout = async (data) => {
     updated_at: new Date()
   });
 
-  // 2. บันทึก Widgets (ถ้ามี)
+  const layoutId = newLayout.id; // เอา ID จริงที่ได้จาก DB มาใช้
+
   if (widgets && widgets.length > 0) {
     for (const w of widgets) {
       await widgetsService.createWidget({
         ...w,
-        layout_id: layoutId // ผูก ID ของ layout ที่เพิ่งสร้าง
+        layout_id: layoutId
       });
     }
   }
@@ -45,42 +42,25 @@ const createLayout = async (data) => {
 };
 
 const updateLayout = async (id, data) => {
-  const { name, width, height, background_color, widgets } = data;
-
-  // 1. อัปเดตข้อมูล Layout
-  await layoutsRepo.update(id, {
-    name,
-    width,
-    height,
-    background_color,
-    updated_at: new Date()
-  });
-
-  // 2. ลบ Widgets เก่าทิ้งทั้งหมด (Reset)
-  await widgetsRepo.deleteByLayoutId(id);
-
-  // 3. ลง Widgets ชุดใหม่ที่ส่งมาจากหน้าบ้าน
-  if (widgets && widgets.length > 0) {
-    for (const w of widgets) {
-      await widgetsService.createWidget({
-        ...w,
-        layout_id: id
-      });
+    // ... โค้ดเดิม (update ใช้ id เดิมได้เลย ไม่กระทบ)
+    const { name, width, height, background_color, widgets } = data;
+    await layoutsRepo.update(id, {
+        name, width, height, background_color, updated_at: new Date()
+    });
+    
+    await widgetsRepo.deleteByLayoutId(id);
+    
+    if (widgets && widgets.length > 0) {
+        for (const w of widgets) {
+            await widgetsService.createWidget({ ...w, layout_id: id });
+        }
     }
-  }
-
-  return { id, message: "Layout updated successfully" };
+    return { id, message: "Layout updated successfully" };
 };
 
 const deleteLayout = async (id) => {
-  await widgetsRepo.deleteByLayoutId(id);
-  await layoutsRepo.deleteById(id);
+    await widgetsRepo.deleteByLayoutId(id);
+    await layoutsRepo.deleteById(id);
 };
 
-module.exports = {
-  getAllLayouts,
-  getLayoutById,
-  createLayout,
-  updateLayout,
-  deleteLayout
-};
+module.exports = { getAllLayouts, getLayoutById, createLayout, updateLayout, deleteLayout };

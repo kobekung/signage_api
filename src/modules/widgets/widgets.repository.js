@@ -1,8 +1,8 @@
 const db = require("../../config/database");
 
 const findByLayoutId = async (layoutId) => {
-  // [Postgres] ใช้ $1
-  return await db.query('SELECT * FROM "widgets" WHERE layout_id = $1', [layoutId]);
+  // [MySQL] ใช้ ? แทน $1
+  return await db.query("SELECT * FROM widgets WHERE layout_id = ?", [layoutId]);
 };
 
 const create = async (widgetData) => {
@@ -10,8 +10,8 @@ const create = async (widgetData) => {
 };
 
 const deleteByLayoutId = async (layoutId) => {
-  // [Postgres] ใช้ $1
-  return await db.query('DELETE FROM "widgets" WHERE layout_id = $1', [layoutId]);
+  // [MySQL] ใช้ ? แทน $1
+  return await db.query("DELETE FROM widgets WHERE layout_id = ?", [layoutId]);
 };
 
 module.exports = {
