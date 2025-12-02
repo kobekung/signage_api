@@ -42,6 +42,8 @@ const getConfigByDevice = async (req, res) => {
     }
     
     res.json({ 
+      bus_id: bus.id,
+      company_id: bus.company_id,
       id: bus.current_layout_id, // ส่ง ID ของ Layout กลับไป
       name: bus.layout_name,
       updated_at: bus.updated_at

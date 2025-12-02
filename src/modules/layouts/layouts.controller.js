@@ -22,7 +22,7 @@ const getLayoutById = async (req, res) => {
 };
 
 const createLayout = async (req, res) => {
-  const companyId = req.query.company_id || req.headers['company_id'];
+  const companyId = req.query.company_id || req.headers['x-company-id'];
   try {
     const result = await layoutService.createLayout(req.body,companyId);
     res.status(201).json(result);

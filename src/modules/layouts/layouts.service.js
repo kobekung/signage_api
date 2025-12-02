@@ -16,10 +16,9 @@ const getLayoutById = async (id) => {
 
 const createLayout = async (data,company_id) => {
   const { name, width, height, background_color, widgets  } = data;
-  
   // [FIX] ไม่ต้อง gen ID เองแล้ว
   const newLayout = await layoutsRepo.create({
-    company_id: company_id,
+    company_id,
     name,
     width: width || 1920,
     height: height || 1080,
